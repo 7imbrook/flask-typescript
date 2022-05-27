@@ -1,0 +1,18 @@
+{
+  "name": "flask-typed-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "typescript/index.ts",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ts-node": "^10.8.0",
+    "typescript": "^4.7.2"
+  }
+}

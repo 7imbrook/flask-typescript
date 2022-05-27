@@ -113,7 +113,7 @@ def _write_interfaces(klass: object, data: str) -> None:
     # Move to config
     path = (
         Path.cwd()
-        / "target"
+        / "typescript"
         / "generated"
         / "interfaces"
     )
