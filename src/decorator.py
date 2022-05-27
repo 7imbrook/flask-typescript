@@ -1,9 +1,19 @@
+from atexit import register
 from dataclasses import asdict, is_dataclass
 import functools
 import inspect
-from inspect import _empty
+from inspect import Signature, _empty
+from json import load
+from pathlib import Path
+from typing import Any, Mapping
+import click
 
-from flask import has_request_context, request, abort
+from flask import g, has_request_context, request, abort
+from jinja2 import Environment, FileSystemLoader, Template
+
+route_types: Mapping[Any, Signature] = {}
+
+TYPE_MAPPING = {int: "number", str: "string"}
 
 
 def client_typed(flask_route):
@@ -14,19 +24,20 @@ def client_typed(flask_route):
     signature = inspect.signature(flask_route)
     return_type = signature.return_annotation
     parameters = signature.parameters
-    
+
     @functools.wraps(flask_route)
     def _skip(*a, **k):
         return flask_route(*a, **k)
 
     if return_type is _empty:
         return _skip
-    
+
     for _, tparam in parameters.items():
         if tparam.annotation is _empty:
             return _skip
-    
-    # TODO: log or write signature for generation of client
+
+    # Register views for later generation
+    route_types[flask_route] = signature
 
     @functools.wraps(flask_route)
     def _inner(*args, **kwargs):
@@ -60,3 +71,55 @@ def client_typed(flask_route):
         return asdict(response)
 
     return _inner
+
+
+def register_command(app) -> None:
+    app.cli.command()(generate_typescript)
+
+
+def generate_typescript() -> None:
+    """
+    generate typescript types
+    """
+    env = Environment(loader=FileSystemLoader("src/templates"))
+    template = env.get_template("interface.ts")
+    click.secho("Generating typescript interfaces for views", fg="yellow")
+    interfaces: Mapping[object, str] = {}
+
+    for _, sig in route_types.items():
+        if (
+            is_dataclass(sig.return_annotation)
+            and sig.return_annotation not in interfaces
+        ):
+            interfaces[sig.return_annotation] = _generate_interface(
+                template, sig.return_annotation
+            )
+
+    for klass, data in interfaces.items():
+        _write_interfaces(klass, data)
+
+
+def _generate_interface(template: Template, dataclass: object) -> str:
+    return template.render(
+        name=dataclass.__name__,
+        attributes={
+            field: TYPE_MAPPING.get(tfield, "any")
+            for field, tfield in dataclass.__annotations__.items()
+        },
+    )
+
+
+def _write_interfaces(klass: object, data: str) -> None:
+    # Move to config
+    path = (
+        Path.cwd()
+        / "target"
+        / "generated"
+        / "interfaces"
+    )
+    path = path.joinpath(klass.__module__.replace(".", "/"))
+    path.mkdir(parents=True, exist_ok=True)
+    interface = path / f"{klass.__name__}.ts"
+    with (path / interface ).open('w+') as file:
+        file.write(data)
+
