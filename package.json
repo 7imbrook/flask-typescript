@@ -1,15 +1,12 @@
 {
   "name": "flask-typed-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "Examples of the generate typscript usage",
   "main": "typescript/index.ts",
-  "directories": {
-    "example": "example"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Michael Timbrook <timbrook480@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "ts-node": "^10.8.0",

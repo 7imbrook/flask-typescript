@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from src.decorator import client_typed, register_command
+from example.schema import SimpleID
+from src.decorator import client_typed, generate_typescript, register_command
 from flask import Flask
 
 
@@ -14,10 +15,18 @@ class ExampleType:
     name: str
 
 
+@dataclass(frozen=True)
+class PayloadExample:
+    name: str
+
+
+@dataclass(frozen=True)
+class LengthResponse:
+    size: int
+
+
 def create_app() -> Flask:
     app = Flask(__name__, static_folder=None)
-
-    register_command(app)
 
     @app.route("/")
     @client_typed
@@ -36,7 +45,14 @@ def create_app() -> Flask:
 
     @app.route("/number")
     @client_typed
-    def number(custom_id: int) -> int:
-        return custom_id
+    def number(custom_id: int) -> SimpleID:
+        return SimpleID(id=custom_id)
 
+    @app.route("/post", methods=["POST"])
+    @client_typed
+    def post(payload: PayloadExample) -> LengthResponse:
+        return LengthResponse(size=len(payload.name))
+    
+    register_command(app)
+    
     return app

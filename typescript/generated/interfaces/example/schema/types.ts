@@ -1,7 +1,6 @@
 // Generated file
 // To regenereate run flask generate-typescript
 
-export default interface ExampleType {
+export interface SimpleID {
     id: number;
-    name: string;
 }

@@ -1,9 +1,9 @@
 // Generated file
 // To regenereate run flask generate-typescript
-
-export default interface {{ name }} {
-    {%- for n, t in attributes.items() %}
+{% for i in interfaces %}
+export interface {{ i.name }} {
+    {%- for n, t in i.attributes.items() %}
     {{n}}: {{t}};
     {%- endfor %}
 }
-
+{% endfor %}
