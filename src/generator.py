@@ -1,7 +1,10 @@
 from dataclasses import is_dataclass
 from distutils.command.build import build
 import inspect
-from itertools import groupby
+from itertools import chain, groupby
+import itertools
+import json
+from os import sync
 from pathlib import Path
 from pprint import pprint
 from subprocess import check_output
@@ -27,6 +30,7 @@ def generate_typescript(clean: bool) -> None:
     generate typescript types
     """
     env = Environment(loader=FileSystemLoader("src/templates"))
+    env.filters["find_dataclass_imports"] = _find_dataclass_imports
     if clean:
         click.secho("Cleaning generated files", fg="red")
         check_output(["rm", "-r", "./typescript/generated"])
@@ -38,20 +42,27 @@ def generate_typescript(clean: bool) -> None:
 
 
 def build_api_definition(env: Environment) -> None:
+    template = env.get_template("interface.ts")
     for rule in current_app.url_map.iter_rules():
         sig = inspect.signature(current_app.view_functions[rule.endpoint])
-        _generate_typed_call(sig, rule)
+        _generate_typed_call(template, sig, rule)
 
 
-def _generate_typed_call(sig: inspect.Signature, rule: Rule) -> None:
+def _generate_typed_call(
+    template: Template, sig: inspect.Signature, rule: Rule
+) -> None:
     type_name = f"{rule.endpoint.capitalize()}Request"
-    print(type_name)
-    print(
-        {
-            name: TYPE_MAPPING.get(t.annotation, t.annotation.__name__)
-            for name, t in sig.parameters.items()
-        }
+    args = {
+        name: TYPE_MAPPING.get(t.annotation, t.annotation.__name__)
+        for name, t in sig.parameters.items()
+    }
+    generated = template.render(
+        interfaces=[dict(name=type_name, attributes={"url": f"'{rule.rule}'", **args})]
     )
+    _write_request_types(type_name, generated)
+
+
+interface_import_lookup = {}
 
 
 def build_interfaces(env: Environment) -> None:
@@ -71,8 +82,13 @@ def build_interfaces(env: Environment) -> None:
 
     template = env.get_template("interface.ts")
     for mod, iterfac in groupby(sorted(list(interfaces), key=g), g):
-        types = _generate_interface(template, list(iterfac))
-        _write_interfaces(mod, types)
+        all_interface = list(iterfac)
+        path = Path.cwd() / "typescript" / "generated" / "interfaces"
+        path = path.joinpath(mod.replace(".", "/"))
+        types = _generate_interface(template, all_interface)
+        _write_interfaces(types, path)
+        for interface in all_interface:
+            interface_import_lookup[interface.__name__] = path
 
 
 def _generate_interface(template: Template, dataclasses: Sequence[object]) -> str:
@@ -91,11 +107,53 @@ def _generate_interface(template: Template, dataclasses: Sequence[object]) -> st
     )
 
 
-def _write_interfaces(module: str, data: str) -> None:
+def _write_interfaces(data: str, path: Path) -> None:
     # Move to config
-    path = Path.cwd() / "typescript" / "generated" / "interfaces"
-    path = path.joinpath(module.replace(".", "/"))
     path.mkdir(parents=True, exist_ok=True)
     interface = path / f"types.ts"
     with (path / interface).open("w+") as file:
         file.write(data)
+
+
+def _write_request_types(type_name: str, data: str) -> None:
+    # Move to config
+    path = Path.cwd() / "typescript" / "generated" / "request"
+    path.mkdir(parents=True, exist_ok=True)
+    interface = path / f"{type_name}.ts"
+    with (path / interface).open("w+") as file:
+        file.write(data)
+
+
+def _needs_import(symbol: str) -> bool:
+    return symbol in interface_import_lookup.keys()
+
+
+def _resolve_import(symbol: str) -> str:
+    if symbol in interface_import_lookup:
+        return (
+            (interface_import_lookup[symbol] / "types")
+            .relative_to(Path.cwd() / "typescript")
+            .as_posix()
+        )
+
+    # Error
+
+
+def _find_dataclass_imports(values: Sequence[object]):
+    """
+    Locates any atttibutes that are dataclasses and makes sure they are imported
+    """
+    needs_import = list(
+        filter(
+            _needs_import, chain(*[list(a.get("attributes").values()) for a in values])
+        )
+    )
+    resolved_imports = list(
+        sorted(
+            zip(map(_resolve_import, needs_import), needs_import), key=lambda i: i[0]
+        )
+    )
+    return {
+        path: list(map(lambda i: i[1], types))
+        for path, types in groupby(resolved_imports, key=lambda i: i[0])
+    }

@@ -1,9 +1,8 @@
 // Generated file
 // To regenereate run flask generate-typescript
 
-export interface LengthResponse {
-    size: number;
-}
+// Imports here
+
 
 export interface CustomResponse {
     id: number;
@@ -12,6 +11,10 @@ export interface CustomResponse {
 export interface ExampleType {
     id: number;
     name: string;
+}
+
+export interface LengthResponse {
+    size: number;
 }
 
 export interface PayloadExample {

@@ -1,5 +1,7 @@
-import { LengthResponse, PayloadExample } from "./generated/interfaces/example/app/types";
-import { SimpleID } from "./generated/interfaces/example/schema/types";
+import { LengthResponse } from "generated/interfaces/example/app/types";
+import { SimpleID } from "generated/interfaces/example/schema/types";
+import { NumberRequest } from "generated/request/NumberRequest";
+import { PostRequest } from "generated/request/PostRequest";
 
 type APIUrl = '/post' | '/number';
 type HTTPMethod = "POST" | "GET";
@@ -15,16 +17,6 @@ const API_BODY_PARAMS: { [key in APIUrl]: string[] } = {
     "/number": []
 }
 
-// Generated off of each view
-type PostRequest = {
-    url: '/post',
-    payload: PayloadExample
-}
-
-type NumberRequest = {
-    url: '/number',
-    custom_id: number
-}
 
 // Union of all types for generic implimentation
 type APIRequest = PostRequest | NumberRequest;

@@ -4,6 +4,7 @@
 // Imports here
 
 
-export interface SimpleID {
-    id: number;
+export interface QueryRequest {
+    custom_id: number;
+    url: '/via_query';
 }

@@ -4,6 +4,6 @@
 // Imports here
 
 
-export interface SimpleID {
-    id: number;
+export interface IndexRequest {
+    url: '/';
 }

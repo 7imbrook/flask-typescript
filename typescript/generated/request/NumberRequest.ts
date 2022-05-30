@@ -4,6 +4,7 @@
 // Imports here
 
 
-export interface SimpleID {
-    id: number;
+export interface NumberRequest {
+    custom_id: number;
+    url: '/number';
 }

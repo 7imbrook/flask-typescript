@@ -4,6 +4,7 @@
 // Imports here
 
 
-export interface SimpleID {
-    id: number;
+export interface ParamsRequest {
+    custom_id: number;
+    url: '/<int:custom_id>';
 }
