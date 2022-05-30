@@ -19,4 +19,5 @@ export interface LengthResponse {
 
 export interface PayloadExample {
     name: string;
+    scope: string;
 }

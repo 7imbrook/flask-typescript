@@ -80,7 +80,8 @@ async function main() {
     const post = await api({
         url: '/post',
         payload: {
-            name: "hello"
+            name: "hello",
+            scope: "global"
         }
     })
     console.log(post.size)

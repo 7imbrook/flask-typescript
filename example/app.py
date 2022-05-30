@@ -18,6 +18,7 @@ class ExampleType:
 
 @dataclass(frozen=True)
 class PayloadExample:
+    scope: str
     name: str
 
 
