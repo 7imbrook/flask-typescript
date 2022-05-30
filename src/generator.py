@@ -46,11 +46,23 @@ def build_api_client(env: Environment) -> None:
     urls = [r.rule for r in current_app.url_map.iter_rules()]
     requests = {rule_to_typename(r) for r in current_app.url_map.iter_rules()}
     responses = {rule_to_reponse(r) for r in current_app.url_map.iter_rules()}
+    overrides = {
+        (rule_to_typename(r), rule_to_reponse(r))
+        for r in current_app.url_map.iter_rules()
+    }
+    method_mapping = {
+        r.rule: rule_to_prefered_method(r) for r in current_app.url_map.iter_rules()
+    }
     client_overrides = template.render(
-        urls=urls, requests=requests, responses=responses, imports=requests.union(responses)
+        urls=urls,
+        requests=requests,
+        responses=responses,
+        overrides=overrides,
+        method_mapping=method_mapping,
+        imports=requests.union(responses),
     )
     path = Path.cwd() / "typescript" / "generated" / "client"
-    _write_file(client_overrides, path, "overrides.ts")
+    _write_file(client_overrides, path, "api.ts")
     # Populate imports if needed
 
 
@@ -69,6 +81,12 @@ def rule_to_reponse(rule: Rule) -> str:
     return inspect.signature(
         current_app.view_functions[rule.endpoint]
     ).return_annotation.__name__
+
+
+def rule_to_prefered_method(rule: Rule):
+    for method in rule.methods:
+        if method in ["GET", "POST", "PUT", "DELETE"]:
+            return method
 
 
 def _generate_typed_call(

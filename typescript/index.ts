@@ -1,75 +1,4 @@
-import { LengthResponse } from "generated/interfaces/example/app/types";
-import { SimpleID } from "generated/interfaces/example/schema/types";
-import { NumberRequest } from "generated/request/NumberRequest";
-import { PostRequest } from "generated/request/PostRequest";
-
-type HTTPMethod = "POST" | "GET";
-
-// Union of all types for generic implimentation
-type APIUrl = '/post' | '/number';
-type APIRequest = PostRequest | NumberRequest;
-type APIResponse = LengthResponse | SimpleID;
-
-// Method type mapping
-const API_METHOD_MAPPING: { [key in APIUrl]: HTTPMethod } = {
-    '/post': "POST",
-    '/number': "GET",
-}
-
-const API_BODY_PARAMS: { [key in APIUrl]: string[] } = {
-    '/post': ["payload"],
-    "/number": []
-}
-
-
-
-// All overrides to map requets to responses
-async function api(r: PostRequest): Promise<LengthResponse>;
-async function api(r: NumberRequest): Promise<SimpleID>;
-
-// Above will be generated
-
-async function api<T extends APIRequest, R extends APIResponse>(request: T): Promise<R> {
-    const url = new URL(request.url, 'http://127.0.0.1:5000')
-    let options = {
-        method: API_METHOD_MAPPING[request.url],
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: undefined
-    };
-    const body = {};
-    const body_params = API_BODY_PARAMS[request.url]
-    // Iterate over body keys
-    body_params.forEach(element => {
-        const b = request[element];
-        if (b) {
-            body[element] = b
-        }
-    });
-    if (Object.keys(body).length > 0) {
-        options = {
-            ...options,
-            body: JSON.stringify(body),
-        }
-    }
-
-    Object.keys(request).filter(k => !['url', ...body_params].includes(k)).forEach(key => {
-        url.searchParams.set(key, request[key]);
-    })
-
-    return await fetchTyped<R>(url, options);
-}
-
-async function fetchTyped<T>(uri: URL, options?: RequestInit): Promise<T | null> {
-    const res = await fetch(uri.toString(), options);
-    if (res.ok) {
-        return await res.json() as T;
-    } else {
-        const error = await res.text()
-        throw new Error(error);
-    }
-}
+import {api} from './generated/client/api'
 
 async function main() {
     const number = await api({
@@ -86,5 +15,15 @@ async function main() {
         }
     })
     console.log(post.size)
+
+    const naming = await api({
+        url: '/naming',
+        idz: number,
+        payload: {
+            name: 'test',
+            scope: 'local'
+        }
+    })
+    console.log(naming.id)
 }
 main()
