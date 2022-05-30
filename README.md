@@ -34,3 +34,8 @@ r.size
 ```
 The parsing/generating of params and the method type of the request will all be abstracted inside the api call. Generating a bunch of type overrides would allow for the response to be mapped
 `async function api(r: PostRequest): Promise<LengthResponse>;`
+
+## What this is not
+- Forward backward compatible
+  - Going for simple, single server application for the home lab
+  - Maybe a project down the line will be to route to server version in consul or something
