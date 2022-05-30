@@ -17,6 +17,8 @@ from werkzeug.routing import Rule
 
 TYPE_MAPPING = {int: "number", str: "string"}
 
+interface_import_lookup = {}
+
 
 def register_command(app) -> None:
     app.cli.add_command(generate_typescript)
@@ -48,10 +50,14 @@ def build_api_definition(env: Environment) -> None:
         _generate_typed_call(template, sig, rule)
 
 
+def rule_to_typename(rule: Rule) -> str:
+    return f"{''.join([p.capitalize() for p in rule.endpoint.split('_')])}Request"
+
+
 def _generate_typed_call(
     template: Template, sig: inspect.Signature, rule: Rule
 ) -> None:
-    type_name = f"{rule.endpoint.capitalize()}Request"
+    type_name = rule_to_typename(rule)
     args = {
         name: TYPE_MAPPING.get(t.annotation, t.annotation.__name__)
         for name, t in sig.parameters.items()
@@ -59,10 +65,9 @@ def _generate_typed_call(
     generated = template.render(
         interfaces=[dict(name=type_name, attributes={"url": f"'{rule.rule}'", **args})]
     )
-    _write_request_types(type_name, generated)
-
-
-interface_import_lookup = {}
+    path = Path.cwd() / "typescript" / "generated" / "request"
+    interface_import_lookup[type_name] = path / type_name
+    _write_interfaces(generated, path, type_name + ".ts")
 
 
 def build_interfaces(env: Environment) -> None:
@@ -88,7 +93,7 @@ def build_interfaces(env: Environment) -> None:
         types = _generate_interface(template, all_interface)
         _write_interfaces(types, path)
         for interface in all_interface:
-            interface_import_lookup[interface.__name__] = path
+            interface_import_lookup[interface.__name__] = path / "types"
 
 
 def _generate_interface(template: Template, dataclasses: Sequence[object]) -> str:
@@ -107,19 +112,9 @@ def _generate_interface(template: Template, dataclasses: Sequence[object]) -> st
     )
 
 
-def _write_interfaces(data: str, path: Path) -> None:
-    # Move to config
+def _write_interfaces(data: str, path: Path, name: str = "types.ts") -> None:
     path.mkdir(parents=True, exist_ok=True)
-    interface = path / f"types.ts"
-    with (path / interface).open("w+") as file:
-        file.write(data)
-
-
-def _write_request_types(type_name: str, data: str) -> None:
-    # Move to config
-    path = Path.cwd() / "typescript" / "generated" / "request"
-    path.mkdir(parents=True, exist_ok=True)
-    interface = path / f"{type_name}.ts"
+    interface = path / name
     with (path / interface).open("w+") as file:
         file.write(data)
 
@@ -131,7 +126,7 @@ def _needs_import(symbol: str) -> bool:
 def _resolve_import(symbol: str) -> str:
     if symbol in interface_import_lookup:
         return (
-            (interface_import_lookup[symbol] / "types")
+            (interface_import_lookup[symbol])
             .relative_to(Path.cwd() / "typescript")
             .as_posix()
         )

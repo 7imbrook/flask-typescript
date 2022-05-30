@@ -54,6 +54,11 @@ def create_app() -> Flask:
     def post(payload: PayloadExample) -> LengthResponse:
         return LengthResponse(size=len(payload.name))
     
+    @app.route("/post", methods=["POST"])
+    @client_typed
+    def naming_second(payload: PayloadExample, idz: SimpleID) -> ExampleType:
+        return ExampleType(id=3, name=payload.name)
+    
     register_command(app)
     
     return app
