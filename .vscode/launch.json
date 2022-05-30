@@ -19,6 +19,21 @@
             ],
             "jinja": true,
             "justMyCode": true
+        },
+        {
+            "name": "Flask: generate typescript",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "example/app.py",
+                "FLASK_ENV": "development"
+            },
+            "args": [
+                "generate-typescript",
+            ],
+            "jinja": true,
+            "justMyCode": true,
         }
     ]
 }

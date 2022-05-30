@@ -1,22 +1,8 @@
-from atexit import register
 from dataclasses import asdict, is_dataclass
 import functools
 import inspect
-from inspect import Signature, _empty
-from itertools import groupby
-from json import load
-from pathlib import Path
-from subprocess import check_output
-from typing import Any, Mapping, Sequence, Set
-import click
-from flask.cli import with_appcontext
-
-from flask import g, has_request_context, request, abort
-from jinja2 import Environment, FileSystemLoader, Template
-
-route_types: Mapping[Any, Signature] = {}
-
-TYPE_MAPPING = {int: "number", str: "string"}
+from inspect import _empty
+from flask import has_request_context, request, abort
 
 
 def client_typed(flask_route):
@@ -38,9 +24,6 @@ def client_typed(flask_route):
     for _, tparam in parameters.items():
         if tparam.annotation is _empty:
             return _skip
-
-    # # Register views for later generation
-    route_types[flask_route] = signature
 
     @functools.wraps(flask_route)
     def _inner(*args, **kwargs):
@@ -74,59 +57,3 @@ def client_typed(flask_route):
         return asdict(response)
 
     return _inner
-
-
-def register_command(app) -> None:
-    app.cli.add_command(generate_typescript)
-
-
-@click.command()
-@with_appcontext
-@click.option("--clean", is_flag=True)
-def generate_typescript(clean: bool) -> None:
-    """
-    generate typescript types
-    """
-    env = Environment(loader=FileSystemLoader("src/templates"))
-    if clean:
-        click.secho("Cleaning generated files", fg="red")
-        check_output(["rm", "-r", "./typescript/generated"])
-
-    click.secho("Generating typescript interfaces for views", fg="yellow")
-    interfaces: Set[object] = set()
-    for _, sig in route_types.items():
-        if is_dataclass(sig.return_annotation):
-            interfaces.add(sig.return_annotation)
-        for param in sig.parameters.values():
-            if is_dataclass(param.annotation):
-                interfaces.add(param.annotation)
-
-    template = env.get_template("interface.ts")
-    for mod, iterfac in groupby(interfaces, lambda i: i.__module__):
-        types = _generate_interface(template, iterfac)
-        _write_interfaces(mod, types)
-
-
-def _generate_interface(template: Template, dataclasses: Sequence[object]) -> str:
-    return template.render(
-        interfaces=[
-            dict(
-                name=dataclass.__name__,
-                attributes={
-                    field: TYPE_MAPPING.get(tfield, "any")
-                    for field, tfield in dataclass.__annotations__.items()
-                },
-            )
-            for dataclass in dataclasses
-        ],
-    )
-
-
-def _write_interfaces(module: str, data: str) -> None:
-    # Move to config
-    path = Path.cwd() / "typescript" / "generated" / "interfaces"
-    path = path.joinpath(module.replace(".", "/"))
-    path.mkdir(parents=True, exist_ok=True)
-    interface = path / f"types.ts"
-    with (path / interface).open("w+") as file:
-        file.write(data)

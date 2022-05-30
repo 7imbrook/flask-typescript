@@ -1,4 +1,4 @@
-import { CustomResponse, LengthResponse, PayloadExample } from "./generated/interfaces/example/app/types";
+import { LengthResponse, PayloadExample } from "./generated/interfaces/example/app/types";
 import { SimpleID } from "./generated/interfaces/example/schema/types";
 
 type APIUrl = '/post' | '/number';

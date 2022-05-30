@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from example.schema import SimpleID
-from src.decorator import client_typed, generate_typescript, register_command
+from src.generator import register_command
+from src.decorator import client_typed
 from flask import Flask
 
 
