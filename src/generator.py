@@ -1,16 +1,11 @@
 from dataclasses import is_dataclass
-from distutils.command.build import build
 import inspect
 from itertools import chain, groupby
-import itertools
-import json
-from os import sync
 from pathlib import Path
-from pprint import pprint
 from subprocess import check_output
 from typing import Sequence, Set
 import click
-from flask import current_app, g
+from flask import current_app
 from flask.cli import with_appcontext
 from jinja2 import Environment, FileSystemLoader, Template
 from werkzeug.routing import Rule
@@ -33,14 +28,30 @@ def generate_typescript(clean: bool) -> None:
     """
     env = Environment(loader=FileSystemLoader("src/templates"))
     env.filters["find_dataclass_imports"] = _find_dataclass_imports
+    env.filters["resolve_imports"] = _resolve_imports
     if clean:
         click.secho("Cleaning generated files", fg="red")
         check_output(["rm", "-r", "./typescript/generated"])
 
-    click.secho("Generating typescript interfaces for views", fg="yellow")
+    click.secho("Generating typescript interfaces for used dataclasses", fg="yellow")
     build_interfaces(env)
-    click.secho("Generating typescript api client", fg="yellow")
+    click.secho("Generating typescript request types", fg="yellow")
     build_api_definition(env)
+    click.secho("Generating typescript api client", fg="yellow")
+    build_api_client(env)
+
+
+def build_api_client(env: Environment) -> None:
+    template = env.get_template("overrides.ts")
+    urls = [r.rule for r in current_app.url_map.iter_rules()]
+    requests = {rule_to_typename(r) for r in current_app.url_map.iter_rules()}
+    responses = {rule_to_reponse(r) for r in current_app.url_map.iter_rules()}
+    client_overrides = template.render(
+        urls=urls, requests=requests, responses=responses, imports=requests.union(responses)
+    )
+    path = Path.cwd() / "typescript" / "generated" / "client"
+    _write_file(client_overrides, path, "overrides.ts")
+    # Populate imports if needed
 
 
 def build_api_definition(env: Environment) -> None:
@@ -52,6 +63,12 @@ def build_api_definition(env: Environment) -> None:
 
 def rule_to_typename(rule: Rule) -> str:
     return f"{''.join([p.capitalize() for p in rule.endpoint.split('_')])}Request"
+
+
+def rule_to_reponse(rule: Rule) -> str:
+    return inspect.signature(
+        current_app.view_functions[rule.endpoint]
+    ).return_annotation.__name__
 
 
 def _generate_typed_call(
@@ -67,7 +84,7 @@ def _generate_typed_call(
     )
     path = Path.cwd() / "typescript" / "generated" / "request"
     interface_import_lookup[type_name] = path / type_name
-    _write_interfaces(generated, path, type_name + ".ts")
+    _write_file(generated, path, type_name + ".ts")
 
 
 def build_interfaces(env: Environment) -> None:
@@ -91,7 +108,7 @@ def build_interfaces(env: Environment) -> None:
         path = Path.cwd() / "typescript" / "generated" / "interfaces"
         path = path.joinpath(mod.replace(".", "/"))
         types = _generate_interface(template, all_interface)
-        _write_interfaces(types, path)
+        _write_file(types, path, "types.ts")
         for interface in all_interface:
             interface_import_lookup[interface.__name__] = path / "types"
 
@@ -112,7 +129,7 @@ def _generate_interface(template: Template, dataclasses: Sequence[object]) -> st
     )
 
 
-def _write_interfaces(data: str, path: Path, name: str = "types.ts") -> None:
+def _write_file(data: str, path: Path, name: str) -> None:
     path.mkdir(parents=True, exist_ok=True)
     interface = path / name
     with (path / interface).open("w+") as file:
@@ -138,11 +155,13 @@ def _find_dataclass_imports(values: Sequence[object]):
     """
     Locates any atttibutes that are dataclasses and makes sure they are imported
     """
-    needs_import = list(
-        filter(
-            _needs_import, chain(*[list(a.get("attributes").values()) for a in values])
-        )
+    return _resolve_imports(
+        chain(*[list(a.get("attributes").values()) for a in values])
     )
+
+
+def _resolve_imports(classes: Sequence[str]):
+    needs_import = list(filter(_needs_import, classes))
     resolved_imports = list(
         sorted(
             zip(map(_resolve_import, needs_import), needs_import), key=lambda i: i[0]

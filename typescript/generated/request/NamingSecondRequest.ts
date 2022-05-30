@@ -9,5 +9,5 @@ import { SimpleID } from 'generated/interfaces/example/schema/types';
 export interface NamingSecondRequest {
     idz: SimpleID;
     payload: PayloadExample;
-    url: '/post';
+    url: '/naming';
 }

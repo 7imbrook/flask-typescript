@@ -3,8 +3,12 @@ import { SimpleID } from "generated/interfaces/example/schema/types";
 import { NumberRequest } from "generated/request/NumberRequest";
 import { PostRequest } from "generated/request/PostRequest";
 
-type APIUrl = '/post' | '/number';
 type HTTPMethod = "POST" | "GET";
+
+// Union of all types for generic implimentation
+type APIUrl = '/post' | '/number';
+type APIRequest = PostRequest | NumberRequest;
+type APIResponse = LengthResponse | SimpleID;
 
 // Method type mapping
 const API_METHOD_MAPPING: { [key in APIUrl]: HTTPMethod } = {
@@ -18,9 +22,6 @@ const API_BODY_PARAMS: { [key in APIUrl]: string[] } = {
 }
 
 
-// Union of all types for generic implimentation
-type APIRequest = PostRequest | NumberRequest;
-type APIResponse = LengthResponse | SimpleID;
 
 // All overrides to map requets to responses
 async function api(r: PostRequest): Promise<LengthResponse>;
