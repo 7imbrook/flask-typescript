@@ -53,12 +53,17 @@ def build_api_client(env: Environment) -> None:
     method_mapping = {
         r.rule: rule_to_prefered_method(r) for r in current_app.url_map.iter_rules()
     }
+    filter_body_params = {
+        r.rule: rule_to_filtered_body_params(r)
+        for r in current_app.url_map.iter_rules()
+    }
     client_overrides = template.render(
         urls=urls,
         requests=requests,
         responses=responses,
         overrides=overrides,
         method_mapping=method_mapping,
+        filter_body_params=filter_body_params,
         imports=requests.union(responses),
     )
     path = Path.cwd() / "typescript" / "generated" / "client"
@@ -87,6 +92,19 @@ def rule_to_prefered_method(rule: Rule):
     for method in rule.methods:
         if method in ["GET", "POST", "PUT", "DELETE"]:
             return method
+
+
+def rule_to_filtered_body_params(rule: Rule):
+    if "GET" in rule.methods:
+        # This will skip places where we have one method handle multiple types, I like to avoid this but its not enforced
+        return []
+    return [
+        p
+        for p, t in inspect.signature(
+            current_app.view_functions[rule.endpoint]
+        ).parameters.items()
+        if is_dataclass(t.annotation)
+    ]
 
 
 def _generate_typed_call(

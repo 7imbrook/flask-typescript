@@ -2,7 +2,7 @@
 // To regenereate run flask generate-typescript
 
 // Imports here
-import { LengthResponse, CustomResponse, ExampleType } from 'generated/interfaces/example/app/types';
+import { CustomResponse, LengthResponse, ExampleType } from 'generated/interfaces/example/app/types';
 import { SimpleID } from 'generated/interfaces/example/schema/types';
 import { IndexRequest } from 'generated/request/IndexRequest';
 import { NamingSecondRequest } from 'generated/request/NamingSecondRequest';
@@ -27,20 +27,21 @@ const API_METHOD_MAPPING: { [key in APIUrl]: HTTPMethod } = {
     "/via_query": "GET",
 }
 
+// Filter params that need to be in the body
 const API_BODY_PARAMS: { [key in APIUrl]: string[] } = {
-    '/post': ["payload"],
-    "/number": [],
     "/": [],
     "/<int:custom_id>": [],
-    "/naming": [],
-    "/via_query": []
+    "/naming": ["payload", "idz"],
+    "/number": [],
+    "/post": ["payload"],
+    "/via_query": [],
 }
 
 
-export async function api(request: QueryRequest): Promise<ExampleType>;
 export async function api(request: PostRequest): Promise<LengthResponse>;
-export async function api(request: NumberRequest): Promise<SimpleID>;
 export async function api(request: IndexRequest): Promise<CustomResponse>;
+export async function api(request: QueryRequest): Promise<ExampleType>;
+export async function api(request: NumberRequest): Promise<SimpleID>;
 export async function api(request: ParamsRequest): Promise<CustomResponse>;
 export async function api(request: NamingSecondRequest): Promise<ExampleType>;
 export async function api<T extends APIRequest, R extends APIResponse>(request: T): Promise<R> {

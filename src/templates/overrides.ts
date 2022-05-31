@@ -18,12 +18,9 @@ const API_METHOD_MAPPING: { [key in APIUrl]: HTTPMethod } = {
 
 // Filter params that need to be in the body
 const API_BODY_PARAMS: { [key in APIUrl]: string[] } = {
-    '/post': ["payload"],
-    "/number": [],
-    "/": [],
-    "/<int:custom_id>": [],
-    "/naming": [],
-    "/via_query": []
+    {%- for url, params in filter_body_params | dictsort %}
+    "{{ url }}": {{ params | tojson }},
+    {%- endfor %}
 }
 
 {% for req, res in overrides %}
