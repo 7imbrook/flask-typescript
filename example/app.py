@@ -35,6 +35,7 @@ def create_app() -> Flask:
     def index() -> CustomResponse:
         return CustomResponse(id=0)
 
+    # This currently isn't supported in the client generation
     @app.route("/<int:custom_id>")
     @client_typed
     def params(custom_id: int) -> CustomResponse:
