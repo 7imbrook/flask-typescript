@@ -41,8 +41,8 @@ const API_BODY_PARAMS: { [key in APIUrl]: string[] } = {
 export async function api(request: PostRequest): Promise<LengthResponse>;
 export async function api(request: IndexRequest): Promise<CustomResponse>;
 export async function api(request: QueryRequest): Promise<ExampleType>;
-export async function api(request: NumberRequest): Promise<SimpleID>;
 export async function api(request: ParamsRequest): Promise<CustomResponse>;
+export async function api(request: NumberRequest): Promise<SimpleID>;
 export async function api(request: NamingSecondRequest): Promise<ExampleType>;
 export async function api<T extends APIRequest, R extends APIResponse>(request: T): Promise<R> {
     const url = new URL(request.url, 'http://127.0.0.1:5000')

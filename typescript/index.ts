@@ -25,5 +25,12 @@ async function main() {
         }
     })
     console.log(naming.id)
+
+    const response = await api({
+        url: '/via_query',
+        custom_id: 123
+    })
+    console.log(response.name)
+
 }
 main()
