@@ -35,6 +35,9 @@ r.size
 The parsing/generating of params and the method type of the request will all be abstracted inside the api call. Generating a bunch of type overrides would allow for the response to be mapped
 `async function api(r: PostRequest): Promise<LengthResponse>;`
 
+## How to use
+This isn't packaged yet, but the general principle is in example. It registers a flask command that will go over all the views and generate typescript. This needs more configuration to be general purpose and some things don't work yet. Separate from type generation, is enforcement, that using the type signature to parse json requests into dataclasses.
+
 ## What this is not
 - Forward backward compatible
   - Going for simple, single server application for the home lab
