@@ -1,0 +1,2 @@
+
+DECORATED_FUNCTION_MARK = 'some-uuid-984c7a5'

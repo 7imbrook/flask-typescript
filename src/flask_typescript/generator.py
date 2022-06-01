@@ -1,14 +1,18 @@
-from dataclasses import is_dataclass
+from functools import cache
 import inspect
+from dataclasses import is_dataclass
 from itertools import chain, groupby
 from pathlib import Path
 from subprocess import check_output
 from typing import Sequence, Set
+
 import click
 from flask import current_app
 from flask.cli import with_appcontext
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, Template
 from werkzeug.routing import Rule
+
+from src.flask_typescript.constants import DECORATED_FUNCTION_MARK
 
 TYPE_MAPPING = {int: "number", str: "string"}
 
@@ -30,7 +34,7 @@ def generate_typescript(clean: bool) -> None:
         loader=ChoiceLoader(
             [
                 FileSystemLoader("src/flask_typescript/templates"),
-                PackageLoader("flask_typescript", "templates"),
+                PackageLoader(__package__, "templates"),
             ]
         )
     )
@@ -50,19 +54,29 @@ def generate_typescript(clean: bool) -> None:
 
 def build_api_client(env: Environment) -> None:
     template = env.get_template("overrides.ts")
-    urls = [r.rule for r in current_app.url_map.iter_rules()]
-    requests = {rule_to_typename(r) for r in current_app.url_map.iter_rules()}
-    responses = {rule_to_reponse(r) for r in current_app.url_map.iter_rules()}
+    urls = [r.rule for r in current_app.url_map.iter_rules() if rule_filtered(r)]
+    requests = {
+        rule_to_typename(r)
+        for r in current_app.url_map.iter_rules()
+        if rule_filtered(r)
+    }
+    responses = {
+        rule_to_reponse(r) for r in current_app.url_map.iter_rules() if rule_filtered(r)
+    }
     overrides = {
         (rule_to_typename(r), rule_to_reponse(r))
         for r in current_app.url_map.iter_rules()
+        if rule_filtered(r)
     }
     method_mapping = {
-        r.rule: rule_to_prefered_method(r) for r in current_app.url_map.iter_rules()
+        r.rule: rule_to_prefered_method(r)
+        for r in current_app.url_map.iter_rules()
+        if rule_filtered(r)
     }
     filter_body_params = {
         r.rule: rule_to_filtered_body_params(r)
         for r in current_app.url_map.iter_rules()
+        if rule_filtered(r)
     }
     client_overrides = template.render(
         urls=urls,
@@ -112,6 +126,12 @@ def rule_to_filtered_body_params(rule: Rule):
         ).parameters.items()
         if is_dataclass(t.annotation)
     ]
+
+
+def rule_filtered(rule: Rule) -> bool:
+    return getattr(
+        current_app.view_functions[rule.endpoint], DECORATED_FUNCTION_MARK, False
+    )
 
 
 def _generate_typed_call(

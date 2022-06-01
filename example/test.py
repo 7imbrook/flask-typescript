@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from flask import Flask
 from flask_testing import TestCase
 
-from src.flask_typescript.decorator import client_typed
+from src.flask_typescript.decorator import generate_ts_client
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class DecoratorWithNoTypesTest(TestCase):
         app.config["TESTING"] = True
 
         @app.get("/")
-        @client_typed
+        @generate_ts_client
         def b():
             return {}
 
@@ -74,7 +74,7 @@ class TestPartingURLParams(TestCase):
         app.config["TESTING"] = True
 
         @app.get("/")
-        @client_typed
+        @generate_ts_client
         def d(pa: int) -> TestReturn:
             return TestReturn(name=f"PA:{pa}")
 
@@ -102,7 +102,7 @@ class TestParamsWithoutTypeFlaskError(TestCase):
         app = Flask(__name__)
 
         @app.get("/")
-        @client_typed
+        @generate_ts_client
         def simple(unknown) -> TestReturn:
             return TestReturn(name=f"PA")
 
@@ -118,7 +118,7 @@ class TestPostBodyParsing(TestCase):
         app.config["TESTING"] = True
 
         @app.post("/")
-        @client_typed
+        @generate_ts_client
         def simple(token: TestBody) -> TestReturn:
             return TestReturn(name=f"{token.token}:{token.id}")
 
@@ -152,7 +152,7 @@ class TestURIParamsParsing(TestCase):
         app.config["TESTING"] = True
 
         @app.get("/<int:idx>")
-        @client_typed
+        @generate_ts_client
         def simple(idx: int) -> TestReturn:
             return TestReturn(name=f"{idx}")
 
@@ -168,7 +168,7 @@ class TestMultpleParams(TestCase):
         app.config["TESTING"] = True
 
         @app.get("/<int:idx>")
-        @client_typed
+        @generate_ts_client
         def simple(idx: int, add: int) -> TestReturn:
             return TestReturn(name=f"{idx}")
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from example.schema import SimpleID
 from src.flask_typescript.generator import register_command
-from src.flask_typescript.decorator import client_typed
+from src.flask_typescript.decorator import generate_ts_client
 from flask import Flask
 
 
@@ -29,38 +29,43 @@ class LengthResponse:
 
 def create_app() -> Flask:
     app = Flask(__name__, static_folder=None)
+    # might change this API
+    register_command(app)
 
     @app.route("/")
-    @client_typed
+    @generate_ts_client
     def index() -> CustomResponse:
         return CustomResponse(id=0)
 
     # This currently isn't supported in the client generation
     @app.route("/<int:custom_id>")
-    @client_typed
+    @generate_ts_client
     def params(custom_id: int) -> CustomResponse:
         return CustomResponse(id=custom_id)
 
     @app.route("/via_query")
-    @client_typed
+    @generate_ts_client
     def query(custom_id: int) -> ExampleType:
         return ExampleType(id=custom_id, name="hello")
 
     @app.route("/number")
-    @client_typed
+    @generate_ts_client
     def number(custom_id: int) -> SimpleID:
         return SimpleID(id=custom_id)
 
     @app.route("/post", methods=["POST"])
-    @client_typed
+    @generate_ts_client
     def post(payload: PayloadExample) -> LengthResponse:
         return LengthResponse(size=len(payload.name))
-    
+
     @app.route("/naming", methods=["POST"])
-    @client_typed
+    @generate_ts_client
     def naming_second(payload: PayloadExample, idz: SimpleID) -> ExampleType:
         return ExampleType(id=3, name=payload.name)
-    
-    register_command(app)
-    
+
+    @app.route("/exclude")
+    def excluded():
+        return "hi"
+
+
     return app

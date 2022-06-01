@@ -4,8 +4,10 @@ import inspect
 from inspect import _empty
 from flask import has_request_context, request, abort
 
+from src.flask_typescript.constants import DECORATED_FUNCTION_MARK
 
-def client_typed(flask_route):
+
+def generate_ts_client(flask_route):
     """
     Reads the routes type signature and generates ...something...
     Not push safe for most multi server applications.
@@ -13,6 +15,7 @@ def client_typed(flask_route):
     signature = inspect.signature(flask_route)
     return_type = signature.return_annotation
     parameters = signature.parameters
+
 
     @functools.wraps(flask_route)
     def _skip(*a, **k):
@@ -24,6 +27,9 @@ def client_typed(flask_route):
     for _, tparam in parameters.items():
         if tparam.annotation is _empty:
             return _skip
+    
+    # Mark for generated code visitor
+    setattr(flask_route, DECORATED_FUNCTION_MARK, True)
 
     @functools.wraps(flask_route)
     def _inner(*args, **kwargs):
