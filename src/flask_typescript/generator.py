@@ -7,7 +7,7 @@ from typing import Sequence, Set
 import click
 from flask import current_app
 from flask.cli import with_appcontext
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, Template
 from werkzeug.routing import Rule
 
 TYPE_MAPPING = {int: "number", str: "string"}
@@ -26,7 +26,14 @@ def generate_typescript(clean: bool) -> None:
     """
     generate typescript types
     """
-    env = Environment(loader=FileSystemLoader("src/templates"))
+    env = Environment(
+        loader=ChoiceLoader(
+            [
+                FileSystemLoader("src/flask_typescript/templates"),
+                PackageLoader("flask_typescript", "templates"),
+            ]
+        )
+    )
     env.filters["find_dataclass_imports"] = _find_dataclass_imports
     env.filters["resolve_imports"] = _resolve_imports
     if clean:

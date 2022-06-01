@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from flask import Flask
 from flask_testing import TestCase
 
-from src.decorator import client_typed
+from src.flask_typescript.decorator import client_typed
 
 
 @dataclass(frozen=True)
